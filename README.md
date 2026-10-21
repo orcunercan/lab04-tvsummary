@@ -1,18 +1,12 @@
 # TV Shows Summary (tvsummary)
 
-An installable Python package that downloads TV show records from the TVmaze API, counts shows per genre, lists shows without a genre, averages ratings by language, counts unrated shows, and writes the results to a JSON file. This is the Lab 02 program restructured into classes and modules, with the same output.
-
-## Data source
-
-https://api.tvmaze.com/shows?page=0
-
-Each record is one TV show, with fields such as name, language, genres and rating. The first page returns 240 shows.
+An installable Python package that downloads TV show records from the TVmaze API and summarizes them: shows per genre, shows without a genre, average rating by language, the number of unrated shows, and a short list of featured shows chosen at random from a fixed seed. This is the Lab 03 package hardened with tests, its own errors, logging, type hints, linting and a settings file.
 
 ## Setup
 
 ```
 conda env create -f environment.yml
-conda activate tvsummary
+conda activate tvsummary-lab04
 pip install -r requirements.txt
 pip install -e .
 ```
@@ -20,57 +14,85 @@ pip install -e .
 ## Run
 
 ```
-python main.py
+python -m tvsummary.main
+python -m tvsummary.main --config config/tvsummary.toml
 ```
 
-The summary is written to `data/processed/summary.json`. If the download fails, for example with no internet connection, the program prints a clear message and exits without a traceback.
+The program writes `data/processed/summary.json` and `data/processed/run_info.json`. Without `--config` it reads `config/tvsummary.toml`.
 
-## Test
+## Check it
 
 ```
-python -m unittest discover -s tests
+python -m ruff format --check .
+python -m ruff check .
+python -m mypy
+python -m pytest
 ```
 
-The tests use handmade records and need no network.
+All four pass. The settings for ruff, mypy and pytest are in `pyproject.toml`, so everyone gets the same results.
 
-## Layout
+## Settings
 
-- `main.py`: thin entry point. Wires the pieces together and prints messages, including the error message when the download fails.
-- `src/tvsummary/__init__.py`: re-exports the public names, so a user can write `from tvsummary import Show`.
-- `src/tvsummary/config.py`: the source URL, timeout and output path, so every setting lives in one place.
-- `src/tvsummary/models.py`: the `Show` class, one cleaned record. Separate because every other module depends on it.
-- `src/tvsummary/sources.py`: `TVMazeSource` and `DownloadError`. The only module that imports `requests`, so the network dependency is isolated.
-- `src/tvsummary/aggregations.py`: the `Aggregation` base class and its four subclasses.
-- `src/tvsummary/report.py`: builds the summary dictionary and writes it as JSON.
-- `tests/test_models.py`: unit tests for `Show` and two aggregations.
+All settings are in `config/tvsummary.toml`:
 
-## What moved where
+- `source_url`: the TVmaze API address the shows are downloaded from.
+- `timeout`: how many seconds to wait for the download before giving up.
+- `output_dir`: the folder where `summary.json` and `run_info.json` are written.
+- `seed`: the seed for the random generator that picks the featured shows.
+- `sample_size`: how many featured shows to pick.
+- `log_level`: which log messages are shown (`DEBUG`, `INFO`, `WARNING` or `ERROR`).
 
-| Lab 02 (`records.py`) | Lab 03 |
-|---|---|
-| `SOURCE_URL`, `OUTPUT` constants, timeout written inside `fetch_records` | `config.py`: `SOURCE_URL`, `TIMEOUT`, `OUTPUT_PATH` |
-| `fetch_records` | `sources.py`: `TVMazeSource.fetch`, now returns `Show` objects |
-| Missing-value checks repeated across functions, e.g. `show.get("genres") or []` and `(show.get("rating") or {}).get("average")` | `models.py`: `Show.__init__` |
-| `shows_per_genre` | `aggregations.py`: `GenreCounts.compute` |
-| `shows_without_genre` | `aggregations.py`: `ShowsWithoutGenre.compute` |
-| `rating_totals_by_language` and `average_rating_by_language` | `aggregations.py`: `AverageRatingByLanguage.compute` |
-| `count_unrated` | `aggregations.py`: `UnratedCount.compute` |
-| `build_summary` | `report.py`: `build_summary`, now loops over aggregation objects |
-| `write_summary` | `report.py`: `write_summary`, now also creates the output folder |
-| `main`, catching `requests.RequestException` | `main.py`: `main`, catching `DownloadError`; `TVMazeSource.fetch` converts the `requests` error |
+## Errors and exit codes
 
-## Design choices
+Every error the package raises on purpose belongs to one family, defined in `errors.py`. Only `main()` catches them.
 
-- **`Show`** exists so that missing or malformed data is handled in one place. In Lab 02 the nested rating check was written twice, in two different functions. Now `Show.__init__` guarantees that `genres` is always a list and that `rating` and `language` are either a value or `None`, so the rest of the code can use `show.genres` and `show.rating` directly.
-- **`TVMazeSource`** keeps the URL and timeout together and turns raw dictionaries into `Show` objects. It also converts network errors into its own `DownloadError`, so `main.py` can report a failed download without importing `requests`.
-- **`Aggregation` and its subclasses** use inheritance because every calculation has the same shape: take a list of shows, return one result, store it under a key in the summary. The base class provides the `key` and the `compute` method that every subclass overrides. `build_summary` loops over a list of aggregation objects and calls `compute` on each one without checking which subclass it is.
-- **Adding one more aggregation** only needs a new subclass that calls `super().__init__("its_key")` and overrides `compute`, plus one more object in the list in `build_summary`. No other code changes.
-- **Same output as Lab 02.** The calculation order and rounding were kept, and the new `summary.json` was compared with the Lab 02 one using `git diff --no-index`; the files are identical.
+| Error class | When it is raised | What the user sees |
+|---|---|---|
+| `TVSummaryError` | Base class of the family; never raised directly | Caught in `main()` to cover every case below |
+| `SettingsError` | The settings file is missing, is not valid TOML, lacks a setting, or has a value of the wrong type | `Error: Cannot read the settings file ...` or `Error: ... is missing the setting ...` |
+| `SourceError` | The download fails: no network, a timeout, or an HTTP error from the server | `Error: Could not reach https://api.tvmaze.com/...` |
+| `DataShapeError` | The response is not valid JSON, is not a list, or contains a record that is not a JSON object | `Error: Expected a list of shows, ...` or a similar one-line message |
+
+Each failure is also logged at ERROR level, and the program stops without a traceback.
+
+- **Exit code 0**: the run succeeded and both output files were written.
+- **Exit code 1**: an expected failure from the table above stopped the run.
+
+A traceback appears only for a bug, which is a mistake in the code rather than an expected failure.
+
+## Reproducing a run
+
+The seed is in `config/tvsummary.toml` (`seed = 42`, `sample_size = 5`). The featured shows are chosen with a private `random.Random(seed)` generator, so the same seed always gives the same list. With the committed settings the list is:
+
+```
+How I Met Your Mother, American Horror Story, Homeland, The Fosters, The Walking Dead
+```
+
+Each run writes `data/processed/run_info.json`, which records every setting used, the Python version, and the versions of pytest, mypy and ruff.
+
+To get exactly the same `featured_shows` list, a classmate also needs:
+
+- the same settings file, especially `seed`, `sample_size` and `source_url`;
+- the same input data, because the list is drawn from the shows the API returns, and TVmaze can change the first page over time;
+- the same Python version (fixed at 3.11 in `environment.yml`), because the random generator's output can change between Python versions;
+- the same package versions, pinned in `requirements.txt`.
+
+## What the tests cover
+
+The suite in `tests/` has 32 tests and needs no network. Shared fixtures are in `tests/conftest.py`.
+
+- **`Show`**: a complete record keeps its values; a missing, `null` or empty genre list becomes an empty list; a missing or `null` rating becomes `None` (parametrized tests).
+- **Aggregations**: each aggregation class is tested on hand-made records, including the seeded `FeaturedShows`, where a test proves that the same seed gives the same list. One test uses `caplog` to check the warning logged for a skipped show.
+- **Sources**: a failed download raises `SourceError` (using `monkeypatch` to make `requests.get` fail), and data with the wrong shape raises `DataShapeError` (`pytest.raises` with `match`).
+- **Settings**: a complete file is read, settings cannot be changed afterwards, and a missing or incomplete file raises `SettingsError` (using `tmp_path`).
+- **`main()`**: a missing settings file and a failed download both return exit code 1 and print a line starting with `Error:`; a successful run returns 0 and writes both files into a temporary folder.
+
+**Not tested:** the real download from TVmaze. A test that depends on the internet fails whenever the network or the API does, so it would not be trusted. The network path is covered with a fake `requests.get` instead, and the real download is checked by running the program.
 
 ## Known limitations
 
 - Only the first page of the API (240 shows) is downloaded, so only two languages appear in the averages.
 - Averages are not weighted by how many ratings each show has on TVmaze.
-- The list of aggregations is fixed inside `build_summary`. Choosing them from outside would need an extra parameter.
-- The tests cover `Show` and two of the four aggregations.
-- Messages are printed rather than logged.
+- An unknown `log_level` value in the settings file (for example `"LOUD"`) is not checked when the settings are loaded and stops the program with a traceback.
+- The featured shows depend on what the API returns, so the list can change if TVmaze changes its first page, even with the same seed.
+- The list of aggregations is fixed inside `build_summary`.
