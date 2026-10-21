@@ -1,6 +1,7 @@
 """Building the summary from a list of shows, and writing it to a JSON file."""
 
 import json
+import logging
 
 from tvsummary.aggregations import (
     AverageRatingByLanguage,
@@ -8,6 +9,8 @@ from tvsummary.aggregations import (
     ShowsWithoutGenre,
     UnratedCount,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def build_summary(shows, source_url):
@@ -28,3 +31,4 @@ def write_summary(summary, path):
     """Write the summary to a JSON file, creating its folder if needed."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    logger.info("Wrote the summary to %s", path)

@@ -1,5 +1,7 @@
 """Tests for each aggregation class, using the handmade shows from conftest.py."""
 
+import logging
+
 import pytest
 
 from tvsummary import (
@@ -47,3 +49,11 @@ def test_each_aggregation_uses_its_summary_key(
 def test_the_base_class_must_be_overridden(shows: list[Show]) -> None:
     with pytest.raises(NotImplementedError):
         Aggregation("base").compute(shows)
+
+
+def test_a_skipped_show_is_logged_as_a_warning(
+    shows: list[Show], caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        AverageRatingByLanguage().compute(shows)
+    assert "Skipping 'B'" in caplog.text

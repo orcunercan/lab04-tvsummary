@@ -1,9 +1,13 @@
 """Fetching the TV show records. This is the only module that imports requests."""
 
+import logging
+
 import requests
 
 from tvsummary.errors import DataShapeError, SourceError
 from tvsummary.models import Show
+
+logger = logging.getLogger(__name__)
 
 
 def to_shows(raw_records: object) -> list[Show]:
@@ -17,6 +21,7 @@ def to_shows(raw_records: object) -> list[Show]:
         if not isinstance(raw, dict):
             raise DataShapeError("Every record in the response must be a JSON object.")
         shows.append(Show(raw))
+    logger.debug("Converted %d records into shows", len(shows))
     return shows
 
 
@@ -29,6 +34,7 @@ class TVMazeSource:
 
     def download(self) -> object:
         """Download the raw JSON data. Network problems become a SourceError."""
+        logger.info("Downloading shows from %s", self.url)
         try:
             response = requests.get(self.url, timeout=self.timeout)
             response.raise_for_status()

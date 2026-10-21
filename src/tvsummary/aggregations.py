@@ -1,5 +1,9 @@
 """Aggregations: a base class and one subclass per calculation in the summary."""
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class Aggregation:
     """Base class for one calculation over a list of Show objects.
@@ -50,6 +54,10 @@ class AverageRatingByLanguage(Aggregation):
         totals = {}
         for show in shows:
             if show.language is None or show.rating is None:
+                logger.warning(
+                    "Skipping %r in the rating averages: no rating or language",
+                    show.name,
+                )
                 continue
             rating_sum, count = totals.get(show.language, (0, 0))
             totals[show.language] = (rating_sum + show.rating, count + 1)
