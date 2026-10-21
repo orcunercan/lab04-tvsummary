@@ -2,6 +2,8 @@
 
 import logging
 
+from tvsummary.models import Show
+
 logger = logging.getLogger(__name__)
 
 
@@ -12,10 +14,10 @@ class Aggregation:
     and overrides compute to do its own calculation.
     """
 
-    def __init__(self, key):
+    def __init__(self, key: str) -> None:
         self.key = key
 
-    def compute(self, shows):
+    def compute(self, shows: list[Show]) -> object:
         """Return the result for this aggregation. Subclasses override this."""
         raise NotImplementedError
 
@@ -23,11 +25,11 @@ class Aggregation:
 class GenreCounts(Aggregation):
     """Number of shows in each genre. A show with several genres counts in each."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("shows_per_genre")
 
-    def compute(self, shows):
-        counts = {}
+    def compute(self, shows: list[Show]) -> dict[str, int]:
+        counts: dict[str, int] = {}
         for show in shows:
             for genre in show.genres:
                 counts[genre] = counts.get(genre, 0) + 1
@@ -37,21 +39,21 @@ class GenreCounts(Aggregation):
 class ShowsWithoutGenre(Aggregation):
     """Names of shows that have no genre listed."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("shows_without_genre")
 
-    def compute(self, shows):
+    def compute(self, shows: list[Show]) -> list[str]:
         return [show.name for show in shows if not show.genres]
 
 
 class AverageRatingByLanguage(Aggregation):
     """Average rating per language. Shows with no rating or language are skipped."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("average_rating_by_language")
 
-    def compute(self, shows):
-        totals = {}
+    def compute(self, shows: list[Show]) -> dict[str, float]:
+        totals: dict[str, tuple[float, int]] = {}
         for show in shows:
             if show.language is None or show.rating is None:
                 logger.warning(
@@ -59,7 +61,7 @@ class AverageRatingByLanguage(Aggregation):
                     show.name,
                 )
                 continue
-            rating_sum, count = totals.get(show.language, (0, 0))
+            rating_sum, count = totals.get(show.language, (0.0, 0))
             totals[show.language] = (rating_sum + show.rating, count + 1)
         return {
             language: round(rating_sum / count, 2)
@@ -70,8 +72,8 @@ class AverageRatingByLanguage(Aggregation):
 class UnratedCount(Aggregation):
     """Number of shows with no average rating."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("unrated_shows")
 
-    def compute(self, shows):
+    def compute(self, shows: list[Show]) -> int:
         return sum(1 for show in shows if show.rating is None)
