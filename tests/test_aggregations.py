@@ -7,6 +7,7 @@ import pytest
 from tvsummary import (
     Aggregation,
     AverageRatingByLanguage,
+    FeaturedShows,
     GenreCounts,
     Show,
     ShowsWithoutGenre,
@@ -57,3 +58,15 @@ def test_a_skipped_show_is_logged_as_a_warning(
     with caplog.at_level(logging.WARNING):
         AverageRatingByLanguage().compute(shows)
     assert "Skipping 'B'" in caplog.text
+
+
+def test_the_same_seed_gives_the_same_featured_shows(shows: list[Show]) -> None:
+    first = FeaturedShows(sample_size=2, seed=1).compute(shows)
+    second = FeaturedShows(sample_size=2, seed=1).compute(shows)
+    assert first == second
+    assert len(first) == 2
+
+
+def test_a_sample_larger_than_the_list_returns_every_show(shows: list[Show]) -> None:
+    featured = FeaturedShows(sample_size=10, seed=1).compute(shows)
+    assert sorted(featured) == ["A", "B", "C"]

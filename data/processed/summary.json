@@ -36,5 +36,12 @@
     "English": 7.58,
     "Japanese": 7.88
   },
-  "unrated_shows": 4
+  "unrated_shows": 4,
+  "featured_shows": [
+    "How I Met Your Mother",
+    "American Horror Story",
+    "Homeland",
+    "The Fosters",
+    "The Walking Dead"
+  ]
 }

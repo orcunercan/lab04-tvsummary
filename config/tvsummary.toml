@@ -1,0 +1,7 @@
+# Settings for one run of tvsummary. Change a run by editing this file.
+source_url = "https://api.tvmaze.com/shows?page=0"
+timeout = 10
+output_dir = "data/processed"
+seed = 42
+sample_size = 5
+log_level = "INFO"

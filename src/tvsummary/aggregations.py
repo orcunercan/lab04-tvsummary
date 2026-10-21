@@ -1,6 +1,7 @@
 """Aggregations: a base class and one subclass per calculation in the summary."""
 
 import logging
+import random
 
 from tvsummary.models import Show
 
@@ -77,3 +78,17 @@ class UnratedCount(Aggregation):
 
     def compute(self, shows: list[Show]) -> int:
         return sum(1 for show in shows if show.rating is None)
+
+
+class FeaturedShows(Aggregation):
+    """A few show names chosen at random. The same seed always gives the same list."""
+
+    def __init__(self, sample_size: int, seed: int) -> None:
+        super().__init__("featured_shows")
+        self.sample_size = sample_size
+        self.seed = seed
+
+    def compute(self, shows: list[Show]) -> list[str]:
+        names = [show.name for show in shows]
+        generator = random.Random(self.seed)
+        return generator.sample(names, k=min(self.sample_size, len(names)))
