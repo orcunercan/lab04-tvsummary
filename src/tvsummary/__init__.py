@@ -7,9 +7,10 @@ from tvsummary.aggregations import (
     ShowsWithoutGenre,
     UnratedCount,
 )
+from tvsummary.errors import DataShapeError, SettingsError, SourceError, TVSummaryError
 from tvsummary.models import Show
 from tvsummary.report import build_summary, write_summary
-from tvsummary.sources import DownloadError, TVMazeSource
+from tvsummary.sources import TVMazeSource, to_shows
 
 __all__ = [
     "Aggregation",
@@ -17,9 +18,13 @@ __all__ = [
     "GenreCounts",
     "ShowsWithoutGenre",
     "UnratedCount",
+    "DataShapeError",
+    "SettingsError",
+    "SourceError",
+    "TVSummaryError",
     "Show",
     "build_summary",
     "write_summary",
-    "DownloadError",
     "TVMazeSource",
+    "to_shows",
 ]

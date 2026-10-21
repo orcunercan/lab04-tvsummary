@@ -3,15 +3,16 @@
 import sys
 
 from tvsummary import config
+from tvsummary.errors import TVSummaryError
 from tvsummary.report import build_summary, write_summary
-from tvsummary.sources import DownloadError, TVMazeSource
+from tvsummary.sources import TVMazeSource
 
 
 def main():
     source = TVMazeSource(config.SOURCE_URL, config.TIMEOUT)
     try:
         shows = source.fetch()
-    except DownloadError as error:
+    except TVSummaryError as error:
         sys.exit(str(error))
 
     summary = build_summary(shows, config.SOURCE_URL)
