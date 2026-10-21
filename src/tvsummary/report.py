@@ -11,7 +11,7 @@ from tvsummary.aggregations import (
 
 
 def build_summary(shows, source_url):
-    """Return the summary dict: the source, the record count, then one entry per aggregation."""
+    """Return the summary: source, record count, then one entry per aggregation."""
     aggregations = [
         GenreCounts(),
         ShowsWithoutGenre(),
