@@ -9,8 +9,14 @@ class TestShow(unittest.TestCase):
     """Show should clean missing or malformed values when it is created."""
 
     def test_complete_record_keeps_its_values(self):
-        show = Show({"name": "Test Show", "language": "English",
-                     "genres": ["Drama", "Comedy"], "rating": {"average": 7.5}})
+        show = Show(
+            {
+                "name": "Test Show",
+                "language": "English",
+                "genres": ["Drama", "Comedy"],
+                "rating": {"average": 7.5},
+            }
+        )
         self.assertEqual(show.name, "Test Show")
         self.assertEqual(show.genres, ["Drama", "Comedy"])
         self.assertEqual(show.rating, 7.5)
@@ -33,9 +39,30 @@ class TestAggregations(unittest.TestCase):
 
     def setUp(self):
         self.shows = [
-            Show({"name": "A", "language": "English", "genres": ["Drama"], "rating": {"average": 8.0}}),
-            Show({"name": "B", "language": "English", "genres": ["Drama", "Comedy"], "rating": None}),
-            Show({"name": "C", "language": "Japanese", "genres": [], "rating": {"average": 6.0}}),
+            Show(
+                {
+                    "name": "A",
+                    "language": "English",
+                    "genres": ["Drama"],
+                    "rating": {"average": 8.0},
+                }
+            ),
+            Show(
+                {
+                    "name": "B",
+                    "language": "English",
+                    "genres": ["Drama", "Comedy"],
+                    "rating": None,
+                }
+            ),
+            Show(
+                {
+                    "name": "C",
+                    "language": "Japanese",
+                    "genres": [],
+                    "rating": {"average": 6.0},
+                }
+            ),
         ]
 
     def test_genre_counts_count_each_genre_once_per_show(self):

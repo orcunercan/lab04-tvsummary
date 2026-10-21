@@ -53,8 +53,10 @@ class AverageRatingByLanguage(Aggregation):
                 continue
             rating_sum, count = totals.get(show.language, (0, 0))
             totals[show.language] = (rating_sum + show.rating, count + 1)
-        return {language: round(rating_sum / count, 2)
-                for language, (rating_sum, count) in totals.items()}
+        return {
+            language: round(rating_sum / count, 2)
+            for language, (rating_sum, count) in totals.items()
+        }
 
 
 class UnratedCount(Aggregation):

@@ -19,4 +19,6 @@ class Show:
     def __str__(self):
         rating_text = self.rating if self.rating is not None else "unrated"
         genre_text = ", ".join(self.genres) if self.genres else "no genre"
-        return f"{self.name} ({self.language}), rating {rating_text}, genres: {genre_text}"
+        return (
+            f"{self.name} ({self.language}), rating {rating_text}, genres: {genre_text}"
+        )
